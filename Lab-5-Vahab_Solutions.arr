@@ -1,9 +1,9 @@
 use context dcic2024
 
+
 include image
 include csv
 include data-source
-
 
 # 1) Load the table
 
@@ -72,34 +72,22 @@ fun trim(s :: String) -> String:
 end
 
 
-# For numeric inputs like 517 -> "05:17"
-fun hhmmToClock(n :: Number) -> String:
-  h = num-floor(n / 100)
-  m = n - (h * 100)
+# --- 517 / "517"  ->  "05:17", no string-slice needed
+fun hhmmToClock(x) -> String:
+  s0 = if is-string(x): x else: to-string(x) end
+  s  = trim(s0)
+  padded = string-append("0000", s)
+  n = string-length(padded)
 
-  hh = if h < 10: string-append("0", to-string(h)) else: to-string(h) end
-  mm = if m < 10: string-append("0", to-string(m)) else: to-string(m) end
+  c0 = string-char-at(padded, n - 4)
+  c1 = string-char-at(padded, n - 3)
+  c2 = string-char-at(padded, n - 2)
+  c3 = string-char-at(padded, n - 1)
 
+  hh = string-append(c0, c1)
+  mm = string-append(c2, c3)
   string-append(hh, string-append(":", mm))
 end
-
-
-# --- 517 / "517"  ->  "05:17"
-# fun hhmmToClock(x) -> String:
-
-#   s = if is-string(x): x else: to-string(x) end
-#   padded = string-append("0000", s)
-#   n = string-length(padded)
-
-#   c0 = string-char-at(padded, n - 4)
-#   c1 = string-char-at(padded, n - 3)
-#   c2 = string-char-at(padded, n - 2)
-#   c3 = string-char-at(padded, n - 1)
-
-#   hh = string-append(c0, c1)
-#   mm = string-append(c2, c3)
-#   string-append(hh, string-append(":", mm))
-# end
 
 
 # Map standardized carrier code -> airline name (use ask; valid identifier name)
@@ -126,11 +114,11 @@ withKey =
   build-column(flights53, "dedup_key",
     lam(r):
       string-append(
-        trim(to-string(r["flight"])),
+        string-to-upper(trim(to-string(r["flight"]))),
         string-append("|",
           string-append(
             string-to-upper(trim(r["carrier"])),
-            string-append("|",r["time_hour"])
+            string-append("|", trim(to-string(r["time_hour"])))
           )
         )
       )
@@ -139,12 +127,22 @@ withKey =
 sortedByKey = order-by(withKey, "dedup_key", true)
 # sortedByKey
 groupDuplicated = group(withKey, "dedup_key")
-countDuplicated = count(withKey, "dedup_key")
 
+# keep first of each key by remembering last key we saw (side-effect in lam)
+var lastKey = "⌀"
+deduped =
+  filter-with(sortedByKey,
+    lam(r) block:
+      k = r["dedup_key"]
+      keep = (k <> lastKey)   # use <> instead of !=
+      lastKey := k
+      keep
+    end)
+deduped
 
 # Fill missing/blank tailnum with "UNKNOWN"
 filledTail =
-  transform-column(sortedByKey, "tailnum",
+  transform-column(deduped, "tailnum",
     lam(t):
       s = to-string(t)
       trimmed = trim(s)
@@ -204,13 +202,13 @@ normalizedTimes =
   transform-column(noOutliers, "dep_time",
     lam(t): hhmmToClock(t) end)
 
-normalizedTimes
+cleanedFlights = normalizedTimes
 
 # -----------------------
 # Task 5 — List stats with for each; plot
 # -----------------------
 
-distances = normalizedTimes.get-column("distance")
+distances = cleanedFlights.get-column("distance")
 
 fun statsDistance(lst :: List<Number>) -> { total :: Number, max :: Number, avg :: Number } block:
   var total = 0
@@ -240,8 +238,7 @@ distStats = statsDistance(distances)
 
 # Optional: quick peek at a few columns
 preview =
-  select-columns(normalizedTimes, [list: "carrier", "airline", "flight", "dep_time", "arr_delay", "distance"])
+  select-columns(cleanedFlights, [list: "carrier", "airline", "flight", "dep_time", "arr_delay", "distance"])
 
-freq-bar-chart(normalizedTimes, "airline")
-scatter-plot(normalizedTimes, "distance", "hour")
-histogram(normalizedTimes, "distance", 100)
+# freq-bar-chart(cleanedFlights, "airline")
+
