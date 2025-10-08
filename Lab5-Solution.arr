@@ -1,6 +1,5 @@
 use context dcic2024
 
-include image
 include csv
 include data-source
 
@@ -40,40 +39,28 @@ flights53 = load-table:
   sanitize minute using num-sanitizer
 end
 
+# flights53
 
 # -----------------------
-# Lightweight helpers (no string-trim, floor, etc.)
+#  helper functions
 # -----------------------
 
-# # Trim spaces at both ends
 fun trim(s :: String) -> String:
+  doc: "Remove spaces from the given string."
   n = string-length(s)
   if n == 0:
     ""
-  else if string-char-at(s, 0) == " ":
-    # remove first char by rebuilding recursively
-    fun dropFirst(i :: Number) -> String:
-      if i >= n: ""
-      else: string-append(string-char-at(s, i), dropFirst(i + 1))
-      end
-    end
-    trim(dropFirst(1))
-  else if string-char-at(s, n - 1) == " ":
-    # remove last char by rebuilding recursively
-    fun dropLast(i :: Number) -> String:
-      if i >= (n - 1): ""
-      else: string-append(string-char-at(s, i), dropLast(i + 1))
-      end
-    end
-    trim(dropLast(0))
   else:
-    s
+    string-replace(s, " ", "")
   end
 end
+
+# trim(flights53.row-n(13)["carrier"])
 
 
 # For numeric inputs like 517 -> "05:17"
 fun hhmmToClock(n :: Number) -> String:
+  doc: "Convert a numeric time value (e.g., 517) into a zero-padded clock string (e.g., '05:17')"
   h = num-floor(n / 100)
   m = n - (h * 100)
 
@@ -102,8 +89,9 @@ end
 # end
 
 
-# Map standardized carrier code -> airline name (use ask; valid identifier name)
+# Map standardized carrier code -> airline name 
 fun carrierToAirline(code :: String) -> String:
+  doc: "Convert a carrier code (e.g., 'UA', 'AA') to its full airline name"
   c = string-to-upper(trim(code))
   ask:
     | c == "UA" then: "United Airlines"
@@ -117,34 +105,15 @@ fun carrierToAirline(code :: String) -> String:
   end
 end
 
+
 # -----------------------
-# Task 2 — Deduplicate & fill missing / clamp negatives
-# Strategy: make a key (carrier|flight|time_hour), sort by it, keep first of each group
+# Task 2 — Handle Missing Data, Clean Data, and Identify Duplicates
 # -----------------------
 
-withKey =
-  build-column(flights53, "dedup_key",
-    lam(r):
-      string-append(
-        trim(to-string(r["flight"])),
-        string-append("|",
-          string-append(
-            string-to-upper(trim(r["carrier"])),
-            string-append("|",r["time_hour"])
-          )
-        )
-      )
-    end)
-
-sortedByKey = order-by(withKey, "dedup_key", true)
-# sortedByKey
-groupDuplicated = group(withKey, "dedup_key")
-countDuplicated = count(withKey, "dedup_key")
-
-
+# 1)
 # Fill missing/blank tailnum with "UNKNOWN"
 filledTail =
-  transform-column(sortedByKey, "tailnum",
+  transform-column(flights53, "tailnum",
     lam(t):
       s = to-string(t)
       trimmed = trim(s)
@@ -155,7 +124,8 @@ filledTail =
       end
     end)
 
-# Clamp negative dep_delay / arr_delay to 0 (if present)
+# 2)
+# Clamp negative dep_delay / arr_delay to 0
 cleanDelays1 =
   transform-column(filledTail, "dep_delay",
     lam(d):
@@ -175,10 +145,33 @@ cleanDelays =
       a end
     end)
 
+
+# 3)
+# Identify duplicate rows
+withKey =
+  build-column(flights53, "dedup_key",
+    lam(r):
+      string-append(
+        trim(to-string(r["flight"])),
+        string-append("-",
+          string-append(
+            string-to-upper(trim(r["carrier"])),
+            string-append("-",hhmmToClock(r["dep_time"]))
+          )
+        )
+      )
+    end)
+
+groupDuplicated = group(withKey, "dedup_key")
+# groupDuplicated
+countDuplicated = count(withKey, "dedup_key")
+# countDuplicated
+
 # -----------------------
-# Task 3 — Fix formatting & airline names
+# Task 3 — Normalising Categorical Values and Outliers (Optional)
 # -----------------------
 
+# 1)
 carrierClean =
   transform-column(cleanDelays, "carrier",
     lam(c): string-to-upper(trim(to-string(c))) end)
@@ -187,61 +180,66 @@ withAirline =
   build-column(carrierClean, "airline",
     lam(r): carrierToAirline(r["carrier"]) end)
 
-
-# -----------------------
-# Task 4 — Remove outliers; normalize departure time
-# -----------------------
-
+# 2) 
+# Outliers
 noOutliers =
   filter-with(withAirline,
     lam(r):
-      (is-number(r["distance"]) and (r["distance"] <= 5000))
-      and
-      (is-number(r["air_time"])  and (r["air_time"]  <= 500))
+      (r["distance"] <= 5000) and (r["air_time"]  <= 500)
     end)
 
-normalizedTimes =
-  transform-column(noOutliers, "dep_time",
-    lam(t): hhmmToClock(t) end)
-
-normalizedTimes
 
 # -----------------------
-# Task 5 — List stats with for each; plot
+# Task 4 — List stats with for each; plot
 # -----------------------
 
-distances = normalizedTimes.get-column("distance")
+# 1) Visualisations of the dataset
+freq-bar-chart(noOutliers, "airline")
+scatter-plot(noOutliers, "distance", "hour")
+histogram(noOutliers, "distance", 100)
 
-fun statsDistance(lst :: List<Number>) -> { total :: Number, max :: Number, avg :: Number } block:
+# 2)
+distances = noOutliers.get-column("distance")
+
+# 3)
+# The total distance flown.
+fun totalDistance(lst :: List) block:
+  doc: "Compute the total of all numbers in the given list using a for-each loop"
   var total = 0
-  var maxd =
-    if length(lst) == 0: 0 else: lst.get(0) end
-  for each(d from lst) block:
+  for each(d from lst):
     total := total + d
-    when d > maxd:
-      maxd := d
-    end
   end
-  avg =
-    if length(lst) == 0: 0
-    else: total / length(lst) end
-  { total: total, max: maxd, avg: avg }
+  total
 where:
-  statsDistance([list: 100, 300, 600]).total is 1000
-  statsDistance([list: 100, 300, 600]).max   is 600
+  totalDistance([list: 0, 1, 2, 3]) is 6
 end
 
-distStats = statsDistance(distances)
-# Inspect in the interactions pane:
-# distStats.total, distStats.max, distStats.avg
+# The average distance
+fun avgDistance(lst :: List):
+  doc: "Return the average value of all numbers in the given list"
+  totalDistance(lst) / length(lst)
+where:
+  avgDistance([list: 0, 1, 2, 3]) is 1.5
+end
 
-# Frequency chart by airline (requires your plotting util to be included above)
-# freq-bar-chart(cleanedFlights, "airline")
+# The maximum distance
+fun maxDistance(lst :: List) block:
+  doc: "Find the maximum value in the given list using a for-each loop"
+  var maxd = lst.get(0)
+  for each(d from lst):
+    if d > maxd:
+      maxd := d
+    else: nothing
+    end   
+  end
+  maxd
+where:
+  maxDistance([list: 0, 1, 2, 3]) is 3
+end
+
 
 # Optional: quick peek at a few columns
-preview =
-  select-columns(normalizedTimes, [list: "carrier", "airline", "flight", "dep_time", "arr_delay", "distance"])
+# preview =
+#   select-columns(noOutliers, [list: "carrier", "airline", "flight", "dep_time", "arr_delay", "distance"])
+# preview
 
-freq-bar-chart(normalizedTimes, "airline")
-scatter-plot(normalizedTimes, "distance", "hour")
-histogram(normalizedTimes, "distance", 100)
