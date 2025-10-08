@@ -45,6 +45,7 @@ end
 #  helper functions
 # -----------------------
 
+# Trim spaces at both ends
 fun trim(s :: String) -> String:
   doc: "Remove spaces from the given string."
   n = string-length(s)
@@ -58,35 +59,27 @@ end
 # trim(flights53.row-n(13)["carrier"])
 
 
-# For numeric inputs like 517 -> "05:17"
-fun hhmmToClock(n :: Number) -> String:
+# Normalise departure times. For numeric inputs like 517 -> "05:17"
+fun hhmmToClock(n :: Number) -> String block:
   doc: "Convert a numeric time value (e.g., 517) into a zero-padded clock string (e.g., '05:17')"
   h = num-floor(n / 100)
   m = n - (h * 100)
 
-  hh = if h < 10: string-append("0", to-string(h)) else: to-string(h) end
-  mm = if m < 10: string-append("0", to-string(m)) else: to-string(m) end
+  var hh = ""
+  if h < 10: 
+    hh := string-append("0", to-string(h)) 
+  else: hh := to-string(h) 
+  end
+  
+  var mm = ""
+  if m < 10: 
+    mm := string-append("0", to-string(m)) 
+  else: 
+    mm := to-string(m) 
+  end
 
   string-append(hh, string-append(":", mm))
 end
-
-
-# --- 517 / "517"  ->  "05:17"
-# fun hhmmToClock(x) -> String:
-
-#   s = if is-string(x): x else: to-string(x) end
-#   padded = string-append("0000", s)
-#   n = string-length(padded)
-
-#   c0 = string-char-at(padded, n - 4)
-#   c1 = string-char-at(padded, n - 3)
-#   c2 = string-char-at(padded, n - 2)
-#   c3 = string-char-at(padded, n - 1)
-
-#   hh = string-append(c0, c1)
-#   mm = string-append(c2, c3)
-#   string-append(hh, string-append(":", mm))
-# end
 
 
 # Map standardized carrier code -> airline name 
@@ -114,10 +107,8 @@ end
 # Fill missing/blank tailnum with "UNKNOWN"
 filledTail =
   transform-column(flights53, "tailnum",
-    lam(t):
-      s = to-string(t)
-      trimmed = trim(s)
-      if string-length(trimmed) == 0:
+    lam(s :: String):
+      if string-length(s) == 0:
         "UNKNOWN"
       else:
         s
@@ -128,21 +119,22 @@ filledTail =
 # Clamp negative dep_delay / arr_delay to 0
 cleanDelays1 =
   transform-column(filledTail, "dep_delay",
-    lam(d):
-      if d < 0: 
+    lam(num):
+      if num < 0: 
         0 
       else: 
-        d 
+        num 
       end
     end)
 
 cleanDelays =
   transform-column(cleanDelays1, "arr_delay",
-    lam(a):
-      if a < 0: 
+    lam(num):
+      if num < 0: 
         0 
       else: 
-      a end
+      num
+      end
     end)
 
 
@@ -150,7 +142,7 @@ cleanDelays =
 # Identify duplicate rows
 withKey =
   build-column(flights53, "dedup_key",
-    lam(r):
+    lam(r :: Row):
       string-append(
         trim(to-string(r["flight"])),
         string-append("-",
@@ -229,12 +221,13 @@ fun maxDistance(lst :: List) block:
   for each(d from lst):
     if d > maxd:
       maxd := d
-    else: nothing
+    else: 
+      maxd
     end   
   end
   maxd
 where:
-  maxDistance([list: 0, 1, 2, 3]) is 3
+  maxDistance([list: 0, 1, 2, 3, 7, 5]) is 7
 end
 
 
