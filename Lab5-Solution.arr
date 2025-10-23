@@ -63,7 +63,7 @@ end
 fun hhmmToClock(n :: Number) -> String block:
   doc: "Convert a numeric time value (e.g., 517) into a zero-padded clock string (e.g., '05:17')"
   h = num-floor(n / 100)
-  m = n - (h * 100)
+  m = num-modulo(n, 100)
 
   var hh = ""
   if h < 10: 
@@ -155,9 +155,9 @@ withKey =
     end)
 
 groupDuplicated = group(withKey, "dedup_key")
-# groupDuplicated
+groupDuplicated
 countDuplicated = count(withKey, "dedup_key")
-# countDuplicated
+ countDuplicated
 
 # -----------------------
 # Task 3 — Normalising Categorical Values and Outliers (Optional)
@@ -229,10 +229,4 @@ fun maxDistance(lst :: List) block:
 where:
   maxDistance([list: 0, 1, 2, 3, 7, 5]) is 7
 end
-
-
-# Optional: quick peek at a few columns
-# preview =
-#   select-columns(noOutliers, [list: "carrier", "airline", "flight", "dep_time", "arr_delay", "distance"])
-# preview
 
