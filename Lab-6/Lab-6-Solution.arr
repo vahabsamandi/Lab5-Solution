@@ -98,8 +98,8 @@ fun replace-domain(email :: String):
     end
   end
 
-nulondon-transformed = map(replace-domain, all-emails)
+all-emails-transformed = map(replace-domain, all-emails)
 
 # Compare these two lists
 # all-emails
-# nulondon-transformed
+# all-emails-transformed
