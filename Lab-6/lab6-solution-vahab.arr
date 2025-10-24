@@ -89,8 +89,9 @@ universities = distinct(uni-domain)
 # 2.3 Replace `nulondon.ac.uk` domains with `northeastern.edu`
 fun replace-domain(email :: String):
     parts = string-split(email, "@")
-       username = parts.get(0)
-      domain = parts.get(1)
+    username = parts.get(0)
+    domain = parts.get(1)
+    
     if domain == "nulondon.ac.uk":
       username + "@northeastern.edu"
     else:
