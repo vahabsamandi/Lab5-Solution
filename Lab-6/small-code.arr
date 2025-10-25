@@ -7,8 +7,7 @@ end
 dog1 = animal("Pet", "Dog", "Bark")
 cat1 = animal("Pet", "Cat", "Mew")
 cow1 = animal("Farm", "Cow", "Moo")
-sheep1 = animal("Farm", "Sheep", "Baa")
-lion1 = animal("Wild", "Lion", "Roar")
+
 
 # Function to return the sound of an animal
 fun animal-sound(a :: Animal) -> String:
@@ -22,6 +21,5 @@ end
 animal-sound(dog1)
 animal-sound(cat1)
 animal-sound(cow1)
-animal-sound(sheep1)
-animal-sound(lion1)
+
 
