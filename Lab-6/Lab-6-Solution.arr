@@ -10,13 +10,13 @@ include csv
 
 # Load the CSV into a table named `student_score`
 student_score = load-table:
-  Name, Surname, Email, Score
+  name, surname, email, score
   source: csv-table-file("students_gate_exam_score.csv",default-options)
-  sanitize Score using num-sanitizer
+  sanitize score using num-sanitizer
 end
 
 # 1.1 Top-3 (Name, Surname, Score) by Score descending
-top3 = order-by(student_score, "Score", false)  
+top3 = order-by(student_score, "score", false)  
     
 # 1.2 Structured data for a Student
 data Student:
@@ -28,9 +28,9 @@ r1 = top3.row-n(0)
 r2 = top3.row-n(1)
 r3 = top3.row-n(2)
 
-s1 = student(r1["Name"], r1["Surname"], r1["Score"])
-s2 = student(r2["Name"], r2["Surname"], r2["Score"])
-s3 = student(r3["Name"], r3["Surname"], r3["Score"])
+s1 = student(r1["name"], r1["surname"], r1["score"])
+s2 = student(r2["name"], r2["surname"], r2["score"])
+s3 = student(r3["name"], r3["surname"], r3["score"])
 
 # 1.4 Recursive function: count how many scores > 90
 scores :: List<Number> =
@@ -67,7 +67,7 @@ end
 # ============================================================
 
 # 2.1 Extract the Email column as a list
-all-emails = student_score.get-column("Email")
+all-emails = student_score.get-column("email")
 
 # 2.2 Split email around "@" to extract domain names (second part), then split domain name around "." to get university name (first part).
 
