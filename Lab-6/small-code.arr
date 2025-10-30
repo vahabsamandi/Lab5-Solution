@@ -4,9 +4,9 @@ data Animal:
 end
 
 # Create several Animal values
-dog1 = animal("Pet", "Dog", "Bark")
-cat1 = animal("Pet", "Cat", "Mew")
-cow1 = animal("Farm", "Cow", "Moo")
+dog = animal("Pet", "Dog", "Bark")
+cat = animal("Pet", "Cat", "Mew")
+cow = animal("Farm", "Cow", "Moo")
 
 
 # Function to return the sound of an animal
@@ -18,8 +18,8 @@ fun animal-sound(a :: Animal) -> String:
 end
 
 # Test calls
-animal-sound(dog1)
-animal-sound(cat1)
-animal-sound(cow1)
+animal-sound(dog)
+animal-sound(cat)
+animal-sound(cow)
 
 

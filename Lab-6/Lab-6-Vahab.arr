@@ -5,6 +5,7 @@ include lists
 include data-source
 include csv
 
+
 student_score = load-table:
   name, surname, email, score
   source: csv-table-file("students_gate_exam_score.csv",default-options)
@@ -53,7 +54,7 @@ end
 
 students-above-80(top-3-studs)
 
-fun avg-scores(score :: List<Number>) -> Number block:
+fun avg-scores(score :: List<Number>) -> Number:
   cases (List) score:
     | empty => 0
     | link(first, rest) =>
@@ -62,3 +63,5 @@ fun avg-scores(score :: List<Number>) -> Number block:
 end
 
 avg-scores(scores)
+
+string-index-of("Vahab", "ha")
