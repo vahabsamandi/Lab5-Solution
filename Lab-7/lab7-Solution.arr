@@ -37,8 +37,7 @@ fun fits-capacities(n :: SensorNet) -> Boolean:
     | hub(bw, l, r) => 
       block:
         load = total-load(l) + total-load(r)
-        if (load <= bw) and fits-capacities(l) and fits-capacities(r): true
-        else: false end
+        (load <= bw) and fits-capacities(l) and fits-capacities(r)
       end
   end
 where:
@@ -67,8 +66,8 @@ fun needed-scale(n :: SensorNet) -> Number:
     | hub(bw, l, r) =>
       block:
         load = total-load(l) + total-load(r)
-        here = load / bw
-        num-max( num-max(here, needed-scale(l)), needed-scale(r) )
+        s = load / bw
+        num-max(num-max(s, needed-scale(l)), needed-scale(r))
       end
   end
 where:
