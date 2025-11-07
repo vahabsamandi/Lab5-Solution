@@ -3,6 +3,7 @@ use context starter2024
    Leaf nodes are sensors (data rate in KB/s). Internal nodes are hubs that combine two sub-networks and have a bandwidth capacity (KB/s).
 |#
 
+# SensorNet represent a tree-structured network of sensors and hubs
 data SensorNet:
   | hub(bandwidth :: Number, left :: SensorNet, right :: SensorNet)
   | sensor(rate :: Number)
@@ -13,8 +14,8 @@ sA = sensor(60)
 sB = sensor(120)
 sC = sensor(45)
 
-hub1 = hub(150, sA, sB)        # load here = 180 (60+120) > 150 (overloaded)
-core = hub(200, hub1, sC)      # load here = 225 (180+45) > 200 (overloaded)
+hub1 = hub(150, sA, sB)        
+core = hub(200, hub1, sC)     
 
 # 1) Total load (sum of leaf rates)
 fun total-load(n :: SensorNet) -> Number:
@@ -24,6 +25,7 @@ fun total-load(n :: SensorNet) -> Number:
     | hub(bw, l, r) => total-load(l) + total-load(r)
   end
 where:
+  total-load(sA) is 60
   total-load(hub1) is 180
   total-load(core) is 225
 end
@@ -41,6 +43,7 @@ fun fits-capacities(n :: SensorNet) -> Boolean:
       end
   end
 where:
+  fits-capacities(sA) is true
   fits-capacities(hub(190, hub1, sC)) is false  # still overloaded at hub1
   fits-capacities(hub(225, hub(190, sA, sB), sC)) is true
 end
